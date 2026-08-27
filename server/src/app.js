@@ -89,5 +89,14 @@ app.listen(PORT, () => {
   queueService.start();
 });
 
+// Health check route
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'QR Attendance API is running smoothly',
+    timestamp: new Date().toISOString()
+  });
+});
+
 export default app;
 
