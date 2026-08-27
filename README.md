@@ -14,8 +14,8 @@ A full-stack, secure, and proxy-resistant classroom attendance tracking system. 
 
 | Component | Status | URL |
 |-----------|--------|-----|
-| **Frontend (App)** | 🟢 Online | **[Launch Application](https://qr-based-attendance-system-hazel.vercel.app)** |
-| **Backend (API)** | 🟢 Online | [Check Health Status](https://qr-based-attendance-system-jw2v.onrender.com/api/health) |
+| **Frontend (App)** | 🟢 Online | **[Launch Application](https://qr-based-attendance-system-zeta.vercel.app/)** |
+| **Backend (API)** | 🟢 Online | [Check Health Status](https://qr-based-attendance-system-bi3d.onrender.com/api/health) |
 
 ---
 
