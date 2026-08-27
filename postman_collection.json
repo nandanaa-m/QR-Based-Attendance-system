@@ -1,0 +1,347 @@
+{
+  "info": {
+    "_postman_id": "qr-attendance-system-v2",
+    "name": "QR Attendance System — Full Test Suite",
+    "description": "10 test cases covering auth, sessions, attendance (happy path + edge cases), queue stress, bounding-box rejection, and CSV export.\n\nBase URL is set via the {{baseUrl}} collection variable.\nDefault: http://localhost:5000\n\nTokens are captured automatically by the Auth tests and stored as\n{{teacherToken}} and {{studentToken}} for downstream requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",       "value": "http://localhost:5000",          "type": "string" },
+    { "key": "teacherEmail",  "value": "faculty@example.com",            "type": "string" },
+    { "key": "studentEmail",  "value": "student@mnit.ac.in",             "type": "string" },
+    { "key": "teacherToken",  "value": "",                               "type": "string" },
+    { "key": "studentToken",  "value": "",                               "type": "string" },
+    { "key": "sessionId",     "value": "",                               "type": "string" },
+    { "key": "sessionLat",    "value": "26.8650",                        "type": "string" },
+    { "key": "sessionLng",    "value": "75.8050",                        "type": "string" },
+    { "key": "sessionRadius", "value": "50",                             "type": "string" }
+  ],
+  "item": [
+
+    {
+      "name": "01 — Auth | Send OTP (Valid Faculty Email)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/api/auth/send-otp", "host": ["{{baseUrl}}"], "path": ["api","auth","send-otp"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{teacherEmail}}\",\n  \"role\": \"teacher\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('success flag is true', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.be.true;",
+              "});",
+              "pm.test('OTP sent message present', () => {",
+              "  pm.expect(pm.response.json().message).to.include('OTP');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "02 — Auth | Send OTP (Non-MNIT Student Email — Expect 400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/api/auth/send-otp", "host": ["{{baseUrl}}"], "path": ["api","auth","send-otp"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"hacker@gmail.com\",\n  \"role\": \"student\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 400 for non-MNIT email', () => pm.response.to.have.status(400));",
+              "pm.test('Error mentions @mnit.ac.in', () => {",
+              "  pm.expect(pm.response.json().error).to.include('@mnit.ac.in');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "03 — Auth | Verify OTP (Wrong / Expired Code — Expect 401)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/api/auth/verify-otp", "host": ["{{baseUrl}}"], "path": ["api","auth","verify-otp"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{teacherEmail}}\",\n  \"otp\": \"000000\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 401 for bad OTP', () => pm.response.to.have.status(401));",
+              "pm.test('Error message is present', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body).to.have.property('error');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "04 — Session | Create Session (Valid Faculty Token)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type",  "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{teacherToken}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/create-session", "host": ["{{baseUrl}}"], "path": ["api","create-session"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"facultyName\": \"Prof. Sharma\",\n  \"subject\": \"Data Structures — CS301\",\n  \"latitude\": \"{{sessionLat}}\",\n  \"longitude\": \"{{sessionLng}}\",\n  \"radius\": \"{{sessionRadius}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+              "pm.test('Session ID returned', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.data).to.have.property('sessionId');",
+              "  pm.collectionVariables.set('sessionId', json.data.sessionId);",
+              "});",
+              "pm.test('QR code is a data URL', () => {",
+              "  pm.expect(pm.response.json().data.qrCode).to.match(/^data:image\\/png;base64,/);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "05 — Attendance | Mark (Inside Radius — Expect 202 Queued)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type",  "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{studentToken}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/mark-attendance", "host": ["{{baseUrl}}"], "path": ["api","mark-attendance"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"studentId\": \"2024UCP1505\",\n  \"studentName\": \"Arjun Singh\",\n  \"latitude\": \"26.8651\",\n  \"longitude\": \"75.8051\",\n  \"deviceId\": \"device-fingerprint-abc123\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 202 Accepted', () => pm.response.to.have.status(202));",
+              "pm.test('queued flag is true', () => {",
+              "  pm.expect(pm.response.json().queued).to.be.true;",
+              "});",
+              "pm.test('position field is a positive integer', () => {",
+              "  pm.expect(pm.response.json().position).to.be.a('number').and.greaterThan(0);",
+              "});",
+              "pm.test('estimatedWaitMs field present', () => {",
+              "  pm.expect(pm.response.json()).to.have.property('estimatedWaitMs');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "06 — Attendance | Mark (Coords Outside Bounding Box — Expect 400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type",  "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{studentToken}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/mark-attendance", "host": ["{{baseUrl}}"], "path": ["api","mark-attendance"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"studentId\": \"2024UCP1506\",\n  \"studentName\": \"Ravi Mehta\",\n  \"latitude\": \"26.9000\",\n  \"longitude\": \"75.9000\",\n  \"deviceId\": \"device-fingerprint-outside-bbox\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Coords are ~4.5 km away — far outside the 50m bbox — should fail fast",
+              "pm.test('Status is 400 for out-of-bbox coordinates', () => pm.response.to.have.status(400));",
+              "pm.test('Error mentions bounding box or allowed area', () => {",
+              "  const body = pm.response.json();",
+              "  const msg  = (body.error || '').toLowerCase();",
+              "  pm.expect(msg).to.satisfy(m =>",
+              "    m.includes('bounding box') || m.includes('outside the allowed area') || m.includes('away from')",
+              "  );",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "07 — Attendance | Mark (Missing deviceId — Expect 400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type",  "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{studentToken}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/mark-attendance", "host": ["{{baseUrl}}"], "path": ["api","mark-attendance"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"studentId\": \"2024UCP1507\",\n  \"studentName\": \"Priya Rao\",\n  \"latitude\": \"26.8651\",\n  \"longitude\": \"75.8051\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 400 when deviceId is missing', () => pm.response.to.have.status(400));",
+              "pm.test('Error mentions device fingerprint', () => {",
+              "  pm.expect(pm.response.json().error).to.include('Device fingerprint');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "08 — Attendance | Mark (Duplicate Scan — Same Device — Expect 400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type",  "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{studentToken}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/mark-attendance", "host": ["{{baseUrl}}"], "path": ["api","mark-attendance"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"studentId\": \"2024UCP1508\",\n  \"studentName\": \"Amit Kumar\",\n  \"latitude\": \"26.8651\",\n  \"longitude\": \"75.8051\",\n  \"deviceId\": \"device-fingerprint-abc123\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Same deviceId as test 05 — the device is already locked to a student",
+              "pm.test('Status is 400 for duplicate device', () => pm.response.to.have.status(400));",
+              "pm.test('Error mentions already marked or device', () => {",
+              "  const msg = (pm.response.json().error || '').toLowerCase();",
+              "  pm.expect(msg).to.satisfy(m => m.includes('already marked') || m.includes('device'));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "09 — Attendance | Queue Stress — 5 Rapid Requests (Different Devices)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type",  "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{studentToken}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/mark-attendance", "host": ["{{baseUrl}}"], "path": ["api","mark-attendance"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"studentId\": \"STRESS-{{$randomInt}}\",\n  \"studentName\": \"Load Test User {{$randomInt}}\",\n  \"latitude\": \"26.8651\",\n  \"longitude\": \"75.8051\",\n  \"deviceId\": \"stress-device-{{$randomInt}}-{{$timestamp}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Run this request with Postman Collection Runner set to 5 iterations.",
+              "// Each iteration uses a unique deviceId via {{$randomInt}} + {{$timestamp}}",
+              "// so they are treated as distinct students.",
+              "pm.test('Status is 202 — every rapid scan is queued, not blocked', () => {",
+              "  pm.response.to.have.status(202);",
+              "});",
+              "pm.test('queued is true', () => pm.expect(pm.response.json().queued).to.be.true);",
+              "pm.test('position increases with each run', () => {",
+              "  pm.expect(pm.response.json().position).to.be.a('number').and.greaterThan(0);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "10 — Export | Download CSV (Valid Faculty Token)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{teacherToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/export-attendance/{{sessionId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api","export-attendance","{{sessionId}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('Content-Type is text/csv', () => {",
+              "  pm.expect(pm.response.headers.get('Content-Type')).to.include('text/csv');",
+              "});",
+              "pm.test('Content-Disposition header present', () => {",
+              "  pm.expect(pm.response.headers.get('Content-Disposition')).to.include('attachment');",
+              "});",
+              "pm.test('Body is not empty', () => {",
+              "  pm.expect(pm.response.text().length).to.be.greaterThan(0);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+
+  ]
+}

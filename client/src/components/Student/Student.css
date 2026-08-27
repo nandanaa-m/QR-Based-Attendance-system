@@ -1,0 +1,193 @@
+.student-container {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+.page-header {
+  margin-bottom: 32px;
+}
+
+.page-header h1 {
+  margin-bottom: 8px;
+}
+
+.page-header.text-center {
+  text-align: center;
+}
+
+.subject-name {
+  font-size: 1.2rem;
+  color: var(--accent-primary);
+  font-weight: 500;
+}
+
+/* Scanner Card */
+.scanner-card {
+  text-align: center;
+}
+
+.qr-reader {
+  margin-bottom: 24px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-secondary);
+  min-height: 300px;
+}
+
+.qr-reader video {
+  border-radius: var(--radius-md);
+}
+
+/* Student Form */
+.student-form {
+  max-width: 100%;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.btn-full {
+  width: 100%;
+}
+
+/* Location Status Box */
+.location-status-box {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-loading,
+.status-success,
+.status-pending {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95rem;
+}
+
+.status-icon {
+  font-size: 1.2rem;
+}
+
+.status-loading .status-icon {
+  animation: spin 1s linear infinite;
+  color: var(--accent-secondary);
+}
+
+.status-success {
+  color: var(--accent-primary);
+}
+
+.status-pending {
+  color: var(--text-muted);
+}
+
+/* Error Message */
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  background: rgba(239, 71, 111, 0.1);
+  border: 1px solid rgba(239, 71, 111, 0.3);
+  border-radius: var(--radius-md);
+  color: var(--accent-danger);
+  margin-bottom: 20px;
+}
+
+/* Status Sections */
+.status-section {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.success-card,
+.error-card {
+  max-width: 400px;
+  width: 100%;
+}
+
+.success-icon-large {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  background: rgba(6, 214, 160, 0.15);
+  color: var(--accent-primary);
+  border-radius: 50%;
+  margin: 0 auto 24px;
+}
+
+.error-icon-large {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  background: rgba(239, 71, 111, 0.15);
+  color: var(--accent-danger);
+  border-radius: 50%;
+  margin: 0 auto 24px;
+}
+
+.success-card h2,
+.error-card h2 {
+  margin-bottom: 12px;
+}
+
+.success-card p,
+.error-card p {
+  margin-bottom: 24px;
+}
+
+.success-details {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.success-details p {
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+}
+
+.success-details p:last-child {
+  margin-bottom: 0;
+}
+
+.success-details strong {
+  color: var(--text-primary);
+}
+
+.error-text {
+  color: var(--accent-danger);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .student-container {
+    padding: 24px 16px;
+  }
+}
+
+/* Animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
