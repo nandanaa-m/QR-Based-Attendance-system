@@ -344,6 +344,3 @@ Import `postman_collection.json` from the project root into Postman. It contains
 
 ---
 
-## 📜 License
-
-MIT License. Built with ❤️ for the C2C Winter Hackathon.
